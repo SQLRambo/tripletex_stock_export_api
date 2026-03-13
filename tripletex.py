@@ -4,7 +4,7 @@ Tripletex API functions for fetching products and inventory.
 
 import csv
 import io
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import requests
 
 BASE_URL = "https://tripletex.no/v2"
@@ -16,7 +16,7 @@ def create_session(consumer_token, employee_token):
         params={
             "consumerToken": consumer_token,
             "employeeToken": employee_token,
-            "expirationDate": date.today().isoformat(),
+            "expirationDate": (date.today() + timedelta(days=1)).isoformat(),
         },
     )
     resp.raise_for_status()
