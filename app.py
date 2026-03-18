@@ -8,7 +8,7 @@ from flask import Flask, render_template, request, Response
 import requests as http_requests
 
 from tripletex import (
-    create_session, delete_session, fetch_report,
+    create_session, delete_session, fetch_report, fetch_date_report,
     generate_csv_bytes, csv_filename,
 )
 
@@ -24,24 +24,15 @@ def index():
 
 @app.route("/export", methods=["POST"])
 def export():
-    consumer_key = request.form.get("consumer_key", "").strip()
-    user_key = request.form.get("user_key", "").strip()
-    session_token = request.form.get("session_token", "").strip()
-
     owns_session = False
+    session_token = None
     try:
-        if session_token:
-            log.info("Using provided session token")
-        elif consumer_key and user_key:
-            log.info("Creating session with consumer/employee tokens")
-            try:
-                session_token = create_session(consumer_key, user_key)
-                owns_session = True
-                log.info("Session created successfully")
-            except http_requests.HTTPError as e:
-                log.error("Session creation failed: %s — %s", e, e.response.text if e.response else "")
-                return render_template("index.html", error=f"Autentisering feilet: {e}")
-        else:
+        try:
+            session_token, owns_session = _resolve_session(request.form)
+        except http_requests.HTTPError as e:
+            return render_template("index.html", error=f"Autentisering feilet: {e}")
+
+        if not session_token:
             return render_template(
                 "index.html",
                 error="Oppgi enten økt-token eller både forbruker-nøkkel og bruker-nøkkel.",
@@ -50,7 +41,7 @@ def export():
         try:
             headers, rows = fetch_report(session_token)
         except http_requests.HTTPError as e:
-            log.error("fetch_report failed: %s | status: %s | body: %s", e, e.response.status_code if e.response else "N/A", e.response.text if e.response else "")
+            log.error("fetch_report failed: %s", e)
             return render_template("index.html", error=f"API-feil: {e}")
 
         csv_bytes = generate_csv_bytes(headers, rows)
@@ -64,6 +55,72 @@ def export():
 
     except Exception as e:
         log.exception("Unexpected error in /export")
+        return render_template("index.html", error=f"Uventet feil: {e}")
+
+    finally:
+        if owns_session and session_token:
+            delete_session(session_token)
+
+
+def _resolve_session(form):
+    """Returns (session_token, owns_session) or raises an error response."""
+    consumer_key = form.get("consumer_key", "").strip()
+    user_key = form.get("user_key", "").strip()
+    session_token = form.get("session_token", "").strip()
+
+    if session_token:
+        log.info("Using provided session token")
+        return session_token, False
+    elif consumer_key and user_key:
+        log.info("Creating session with consumer/employee tokens")
+        try:
+            token = create_session(consumer_key, user_key)
+            log.info("Session created successfully")
+            return token, True
+        except http_requests.HTTPError as e:
+            log.error("Session creation failed: %s", e)
+            raise
+    else:
+        return None, False
+
+
+@app.route("/export-by-date", methods=["POST"])
+def export_by_date():
+    report_date = request.form.get("report_date", "").strip()
+    if not report_date:
+        return render_template("index.html", error="Velg en dato for rapporten.")
+
+    owns_session = False
+    session_token = None
+    try:
+        try:
+            session_token, owns_session = _resolve_session(request.form)
+        except http_requests.HTTPError as e:
+            return render_template("index.html", error=f"Autentisering feilet: {e}")
+
+        if not session_token:
+            return render_template(
+                "index.html",
+                error="Oppgi enten økt-token eller både forbruker-nøkkel og bruker-nøkkel.",
+            )
+
+        try:
+            headers, rows = fetch_date_report(session_token, report_date)
+        except http_requests.HTTPError as e:
+            log.error("fetch_date_report failed: %s", e)
+            return render_template("index.html", error=f"API-feil: {e}")
+
+        csv_bytes = generate_csv_bytes(headers, rows)
+        filename = csv_filename(f"lager_{report_date}")
+
+        return Response(
+            csv_bytes,
+            mimetype="text/csv",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+
+    except Exception as e:
+        log.exception("Unexpected error in /export-by-date")
         return render_template("index.html", error=f"Uventet feil: {e}")
 
     finally:

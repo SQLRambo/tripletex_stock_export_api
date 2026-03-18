@@ -181,7 +181,7 @@ def generate_csv_bytes(headers, rows):
 
 def fetch_report(session_token):
     """
-    Fetches products and inventory, returns (headers, rows, has_locations).
+    Fetches products and inventory, returns (headers, rows).
     Raises requests.HTTPError on API errors.
     """
     products = get_products(session_token)
@@ -192,6 +192,52 @@ def fetch_report(session_token):
     return headers, rows
 
 
-def csv_filename():
+def fetch_date_report(session_token, report_date):
+    """
+    Fetches stock qty and value per warehouse for a specific date.
+    report_date: ISO date string (YYYY-MM-DD).
+    Returns (headers, rows).
+    """
+    products = get_products(session_token)
+
+    inventories, _ = _get_all_pages(
+        session_token,
+        "/inventory/inventories",
+        {"dateFrom": report_date, "dateTo": report_date, "fields": "product(id),stock"},
+    )
+
+    # Build {product_id: [(warehouse_name, qty, value), ...]}
+    warehouse_map = {}
+    for inv in inventories:
+        product_id = inv.get("product", {}).get("id")
+        if product_id is None:
+            continue
+        product = products.get(product_id, {})
+        cost = product.get("costExcludingVatCurrency") or 0
+        for entry in inv.get("stock") or []:
+            qty = entry.get("closingStock") or 0
+            if qty != 0:
+                warehouse_name = entry.get("inventory", "")
+                value = float(qty) * float(cost) if cost else 0
+                warehouse_map.setdefault(product_id, []).append((warehouse_name, qty, value))
+
+    headers = [
+        "Nummer", "Navn", "Kostpris (ekskl. mva)",
+        "Lager", "Antall på lager", "Lagerverdi (ekskl. mva)",
+    ]
+    rows = []
+    for product in sorted(products.values(), key=_sort_key):
+        product_id = product["id"]
+        cost = product.get("costExcludingVatCurrency", "")
+        number = product.get("number", "")
+        name = product.get("name", "")
+        warehouses = warehouse_map.get(product_id, [])
+        for warehouse_name, qty, value in warehouses:
+            rows.append([number, name, cost, warehouse_name, qty, value])
+
+    return headers, rows
+
+
+def csv_filename(prefix="lagerantall"):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    return f"lagerantall_{timestamp}.csv"
+    return f"{prefix}_{timestamp}.csv"

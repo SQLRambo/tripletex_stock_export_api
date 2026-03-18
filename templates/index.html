@@ -76,7 +76,7 @@
       margin-bottom: 0.35rem;
     }
 
-    input[type="text"], input[type="password"] {
+    input[type="text"], input[type="password"], input[type="date"] {
       width: 100%;
       padding: 0.55rem 0.75rem;
       border: 1px solid #d1d5db;
@@ -86,6 +86,37 @@
       outline: none;
       transition: border-color 0.15s, box-shadow 0.15s;
       margin-bottom: 1rem;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #e5e7eb;
+      margin: 1.25rem 0;
+    }
+
+    .report-type {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .report-type-btn {
+      flex: 1;
+      padding: 0.45rem 0.5rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      border: 1.5px solid #d1d5db;
+      border-radius: 6px;
+      background: #fff;
+      color: #555;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+
+    .report-type-btn.active {
+      border-color: #2563eb;
+      color: #2563eb;
+      background: #eff6ff;
     }
 
     input:focus {
@@ -165,7 +196,7 @@
       <button class="tab" onclick="switchTab('token', this)" type="button">Økt-token</button>
     </div>
 
-    <form method="POST" action="/export" onsubmit="handleSubmit(this)">
+    <form method="POST" action="/export" id="main-form" onsubmit="handleSubmit(this)">
       <!-- Keys panel -->
       <div class="panel active" id="panel-keys">
         <label for="consumer_key">Forbruker-nøkkel</label>
@@ -180,6 +211,20 @@
         <label for="session_token">Økt-token</label>
         <input type="text" id="session_token" name="session_token" autocomplete="off" placeholder="Session token">
         <p class="hint">Bruk dette hvis du allerede har et aktivt økt-token.</p>
+      </div>
+
+      <hr class="divider">
+
+      <!-- Report type -->
+      <label>Rapporttype</label>
+      <div class="report-type">
+        <button type="button" class="report-type-btn active" id="btn-standard" onclick="setReportType('standard')">Lagerantall (nå)</button>
+        <button type="button" class="report-type-btn" id="btn-date" onclick="setReportType('date')">Lagerverdi per dato</button>
+      </div>
+
+      <div id="date-section" style="display:none;">
+        <label for="report_date">Dato</label>
+        <input type="date" id="report_date" name="report_date">
       </div>
 
       <button type="submit" id="submit-btn">
@@ -197,12 +242,28 @@
       document.getElementById('panel-' + name).classList.add('active');
     }
 
+    function setReportType(type) {
+      const form = document.getElementById('main-form');
+      const dateSection = document.getElementById('date-section');
+      document.getElementById('btn-standard').classList.toggle('active', type === 'standard');
+      document.getElementById('btn-date').classList.toggle('active', type === 'date');
+      if (type === 'date') {
+        dateSection.style.display = 'block';
+        if (!document.getElementById('report_date').value) {
+          document.getElementById('report_date').value = new Date().toISOString().slice(0, 10);
+        }
+        form.action = '/export-by-date';
+      } else {
+        dateSection.style.display = 'none';
+        form.action = '/export';
+      }
+    }
+
     function handleSubmit(form) {
       const btn = document.getElementById('submit-btn');
       btn.disabled = true;
       btn.classList.add('loading');
       btn.querySelector('.btn-text').textContent = 'Henter data…';
-      // Re-enable after download (browsers don't fire an event for file downloads)
       setTimeout(() => {
         btn.disabled = false;
         btn.classList.remove('loading');
