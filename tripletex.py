@@ -134,15 +134,16 @@ def _format_number(val):
     return val
 
 
-def build_rows(products, qty_map, has_locations):
+def build_rows(products, qty_map, has_locations, export_date=None):
     """Returns (headers, rows) sorted by product number."""
+    date_str = (export_date or date.today()).strftime("%d.%m.%Y")
     if has_locations:
         headers = [
-            "Nummer", "Navn", "Kostpris (ekskl. mva)",
+            "Dato", "Nummer", "Navn", "Kostpris (ekskl. mva)",
             "Lager nr", "Lager navn", "Lokasjon nr", "Lokasjon navn", "Antall på lager",
         ]
     else:
-        headers = ["Nummer", "Navn", "Kostpris (ekskl. mva)", "Lager", "Antall på lager"]
+        headers = ["Dato", "Nummer", "Navn", "Kostpris (ekskl. mva)", "Lager", "Antall på lager"]
 
     rows = []
     for product in sorted(products.values(), key=_sort_key):
@@ -154,10 +155,10 @@ def build_rows(products, qty_map, has_locations):
 
         if has_locations:
             for wh_number, wh_name, loc_number, loc_name, qty in qty_map.get(product_id, []):
-                rows.append([number, name, cost_str, wh_number, wh_name, loc_number, loc_name, qty])
+                rows.append([date_str, number, name, cost_str, wh_number, wh_name, loc_number, loc_name, qty])
         else:
             for warehouse_name, qty in qty_map.get(product_id, []):
-                rows.append([number, name, cost_str, warehouse_name, qty])
+                rows.append([date_str, number, name, cost_str, warehouse_name, qty])
 
     return headers, rows
 
