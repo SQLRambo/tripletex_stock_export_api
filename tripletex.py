@@ -139,11 +139,11 @@ def build_rows(products, qty_map, has_locations, export_date=None):
     date_str = (export_date or date.today()).strftime("%d.%m.%Y")
     if has_locations:
         headers = [
-            "Dato", "Nummer", "Navn", "Kostpris (ekskl. mva)",
-            "Lager nr", "Lager navn", "Lokasjon nr", "Lokasjon navn", "Antall på lager",
+            "Dato", "Produktnr", "Produktnavn", "Kostpris",
+            "Lager nr", "Lager navn", "Lokasjon nr", "Lokasjon navn", "Antall",
         ]
     else:
-        headers = ["Dato", "Nummer", "Navn", "Kostpris (ekskl. mva)", "Lager", "Antall på lager"]
+        headers = ["Dato", "Produktnr", "Produktnavn", "Kostpris", "Lager", "Antall"]
 
     rows = []
     for product in sorted(products.values(), key=_sort_key):
