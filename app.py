@@ -4,10 +4,13 @@ Run directly to start the Waitress server.
 """
 
 import logging
+import os
 from flask import Flask, render_template, request, Response
+from dotenv import load_dotenv
 import requests as http_requests
 
-CONSUMER_TOKEN = "eyJ0b2tlbklkIjo2MTE2LCJ0b2tlbiI6ImUxOGY3MDhhLTVhYzYtNGY0Zi1hMjE2LWM3MzcxMzEwM2VhMSJ9"
+load_dotenv()
+CONSUMER_TOKEN = os.environ["CONSUMER_TOKEN"]
 
 from tripletex import (
     create_session, delete_session, fetch_report, fetch_date_report,
