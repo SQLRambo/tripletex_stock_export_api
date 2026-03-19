@@ -140,10 +140,10 @@ def build_rows(products, qty_map, has_locations, export_date=None):
     if has_locations:
         headers = [
             "Dato", "Produktnr", "Produktnavn", "Kostpris",
-            "Lager nr", "Lager navn", "Lokasjon nr", "Lokasjon navn", "Antall",
+            "Lager nr", "Lager navn", "Lokasjon nr", "Lokasjon navn", "Antall", "Årsak",
         ]
     else:
-        headers = ["Dato", "Produktnr", "Produktnavn", "Kostpris", "Lager", "Antall"]
+        headers = ["Dato", "Produktnr", "Produktnavn", "Kostpris", "Lager", "Antall", "Årsak"]
 
     rows = []
     for product in sorted(products.values(), key=_sort_key):
@@ -155,10 +155,10 @@ def build_rows(products, qty_map, has_locations, export_date=None):
 
         if has_locations:
             for wh_number, wh_name, loc_number, loc_name, qty in qty_map.get(product_id, []):
-                rows.append([date_str, number, name, cost_str, wh_number, wh_name, loc_number, loc_name, qty])
+                rows.append([date_str, number, name, cost_str, wh_number, wh_name, loc_number, loc_name, qty, "Antall fra Tripletex"])
         else:
             for warehouse_name, qty in qty_map.get(product_id, []):
-                rows.append([date_str, number, name, cost_str, warehouse_name, qty])
+                rows.append([date_str, number, name, cost_str, warehouse_name, qty, "Antall fra Tripletex"])
 
     return headers, rows
 
