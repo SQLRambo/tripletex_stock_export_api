@@ -7,6 +7,8 @@ import logging
 from flask import Flask, render_template, request, Response
 import requests as http_requests
 
+CONSUMER_TOKEN = "eyJ0b2tlbklkIjo2MTE2LCJ0b2tlbiI6ImUxOGY3MDhhLTVhYzYtNGY0Zi1hMjE2LWM3MzcxMzEwM2VhMSJ9"
+
 from tripletex import (
     create_session, delete_session, fetch_report, fetch_date_report,
     generate_csv_bytes, csv_filename,
@@ -35,7 +37,7 @@ def export():
         if not session_token:
             return render_template(
                 "index.html",
-                error="Oppgi enten økt-token eller både forbruker-nøkkel og bruker-nøkkel.",
+                error="Oppgi enten økt-token eller bruker-nøkkel.",
             )
 
         try:
@@ -64,17 +66,16 @@ def export():
 
 def _resolve_session(form):
     """Returns (session_token, owns_session) or raises an error response."""
-    consumer_key = form.get("consumer_key", "").strip()
     user_key = form.get("user_key", "").strip()
     session_token = form.get("session_token", "").strip()
 
     if session_token:
         log.info("Using provided session token")
         return session_token, False
-    elif consumer_key and user_key:
-        log.info("Creating session with consumer/employee tokens")
+    elif user_key:
+        log.info("Creating session with hardcoded consumer token + employee token")
         try:
-            token = create_session(consumer_key, user_key)
+            token = create_session(CONSUMER_TOKEN, user_key)
             log.info("Session created successfully")
             return token, True
         except http_requests.HTTPError as e:
@@ -101,7 +102,7 @@ def export_by_date():
         if not session_token:
             return render_template(
                 "index.html",
-                error="Oppgi enten økt-token eller både forbruker-nøkkel og bruker-nøkkel.",
+                error="Oppgi enten økt-token eller bruker-nøkkel.",
             )
 
         try:
