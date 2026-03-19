@@ -153,19 +153,11 @@ def build_rows(products, qty_map, has_locations):
         name = product.get("name", "")
 
         if has_locations:
-            entries = qty_map.get(product_id, [])
-            if entries:
-                for wh_number, wh_name, loc_number, loc_name, qty in entries:
-                    rows.append([number, name, cost_str, wh_number, wh_name, loc_number, loc_name, qty])
-            else:
-                rows.append([number, name, cost_str, "", "", "", "", 0])
+            for wh_number, wh_name, loc_number, loc_name, qty in qty_map.get(product_id, []):
+                rows.append([number, name, cost_str, wh_number, wh_name, loc_number, loc_name, qty])
         else:
-            warehouses = qty_map.get(product_id, [])
-            if warehouses:
-                for warehouse_name, qty in warehouses:
-                    rows.append([number, name, cost_str, warehouse_name, qty])
-            else:
-                rows.append([number, name, cost_str, "", 0])
+            for warehouse_name, qty in qty_map.get(product_id, []):
+                rows.append([number, name, cost_str, warehouse_name, qty])
 
     return headers, rows
 
